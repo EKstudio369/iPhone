@@ -12,26 +12,52 @@
             text-align: center;
             padding: 20px;
         }
-        .info {
+        .info, .weather, .clock, .map, .news {
             margin: 20px auto;
             padding: 20px;
             background-color: #333;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            max-width: 600px;
+            max-width: 800px;
             text-align: left;
         }
-        h1 {
+        h1, h2 {
             color: #4CAF50;
         }
         p {
             margin: 10px 0;
         }
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+        }
+        .news ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .news li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 5px;
+        }
+        .news a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .news a:hover {
+            text-decoration: underline;
+        }
     </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
     <h1>Информация об устройстве</h1>
+    
     <div class="info">
+        <h2>Основная информация</h2>
         <p id="browser"></p>
         <p id="resolution"></p>
         <p id="date"></p>
@@ -47,6 +73,28 @@
         <p id="plugins"></p>
     </div>
 
+    <div class="clock">
+        <h2>Текущее время</h2>
+        <p id="time"></p>
+    </div>
+
+    <div class="weather">
+        <h2>Погода</h2>
+        <p id="weather"></p>
+    </div>
+
+    <div class="map">
+        <h2>Ваше местоположение на карте</h2>
+        <div id="map"></div>
+    </div>
+
+    <div class="news">
+        <h2>Последние новости</h2>
+        <ul id="news-list"></ul>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         // Информация о браузере
         const browserInfo = navigator.userAgent;
@@ -57,9 +105,23 @@
         const screenHeight = window.screen.height;
         document.getElementById('resolution').innerText = `Разрешение экрана: ${screenWidth}x${screenHeight}`;
 
-        // Текущая дата
-        const currentDate = new Date().toLocaleString();
-        document.getElementById('date').innerText = `Текущая дата и время: ${currentDate}`;
+        // Текущая дата и время
+        function updateDateTime() {
+            const now = new Date();
+            const currentDate = now.toLocaleString();
+            document.getElementById('date').innerText = `Текущая дата и время: ${currentDate}`;
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000); // Обновление каждую секунду
+
+        // Часы
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('time').innerText = `Текущее время: ${timeString}`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000); // Обновление каждую секунду
 
         // Информация о сети
         const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -83,11 +145,17 @@
         }
 
         // Геолокация
+        let latitude = 0;
+        let longitude = 0;
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 position => {
-                    const { latitude, longitude } = position.coords;
+                    latitude = position.coords.latitude;
+                    longitude = position.coords.longitude;
                     document.getElementById('location').innerText = `Широта: ${latitude.toFixed(2)}, Долгота: ${longitude.toFixed(2)}`;
+                    initMap(latitude, longitude);
+                    getWeather(latitude, longitude);
+                    getNews(); // Получение новостей после получения геолокации
                 },
                 error => {
                     document.getElementById('location').innerText = 'Геолокация отключена или недоступна.';
@@ -95,6 +163,43 @@
             );
         } else {
             document.getElementById('location').innerText = 'Геолокация не поддерживается вашим устройством.';
+        }
+
+        // Инициализация карты
+        function initMap(lat, lon) {
+            const map = L.map('map').setView([lat, lon], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            L.marker([lat, lon]).addTo(map)
+                .bindPopup('Вы здесь')
+                .openPopup();
+        }
+
+        // Функция получения погоды
+        function getWeather(lat, lon) {
+            const apiKey = 'ВАШ_API_KEY'; // Замените на ваш API-ключ OpenWeatherMap
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=ru&appid=${apiKey}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.cod === 200) {
+                        const weatherDescription = data.weather[0].description;
+                        const temperature = data.main.temp;
+                        const humidity = data.main.humidity;
+                        const windSpeed = data.wind.speed;
+                        document.getElementById('weather').innerText = `Погода: ${weatherDescription}, Температура: ${temperature}°C, Влажность: ${humidity}%, Ветер: ${windSpeed} м/с`;
+                    } else {
+                        document.getElementById('weather').innerText = 'Не удалось получить данные о погоде.';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('weather').innerText = 'Ошибка при получении данных о погоде.';
+                });
         }
 
         // Цветовая схема
@@ -134,6 +239,39 @@
             pluginsList += 'Нет установленных плагинов.';
         }
         document.getElementById('plugins').innerText = pluginsList;
+
+        // Функция получения новостей
+        function getNews() {
+            const apiKey = 'ВАШ_NEWSAPI_KEY'; // Замените на ваш API-ключ NewsAPI
+            const url = `https://newsapi.org/v2/top-headlines?country=ru&apiKey=${apiKey}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const articles = data.articles.slice(0, 5); // Получаем первые 5 новостей
+                        const newsList = document.getElementById('news-list');
+                        newsList.innerHTML = '';
+                        articles.forEach(article => {
+                            const listItem = document.createElement('li');
+                            const link = document.createElement('a');
+                            link.href = article.url;
+                            link.target = '_blank';
+                            link.innerText = article.title;
+                            listItem.appendChild(link);
+                            newsList.appendChild(listItem);
+                        });
+                    } else {
+                        document.querySelector('.news').innerText = 'Не удалось получить новости.';
+                    }
+                })
+                .catch(() => {
+                    document.querySelector('.news').innerText = 'Ошибка при получении новостей.';
+                });
+        }
+
+        // Вызов функции получения новостей после загрузки страницы и получения геолокации
+        // window.onload уже вызывает getNews() после получения геолокации
     </script>
 </body>
 </html>
