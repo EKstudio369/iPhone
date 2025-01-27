@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация об устройстве</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2f;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        .info {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            text-align: left;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Информация об устройстве</h1>
+    <div class="info">
+        <p id="browser"></p>
+        <p id="resolution"></p>
+        <p id="date"></p>
+        <p id="network"></p>
+        <p id="battery"></p>
+        <p id="location"></p>
+        <p id="theme"></p>
+        <p id="features"></p>
+        <p id="timezone"></p>
+        <p id="language"></p>
+        <p id="orientation"></p>
+        <p id="touch"></p>
+        <p id="plugins"></p>
+    </div>
+
+    <script>
+        // Информация о браузере
+        const browserInfo = navigator.userAgent;
+        document.getElementById('browser').innerText = `Ваш браузер: ${browserInfo}`;
+
+        // Разрешение экрана
+        const screenWidth = window.screen.width;
+        const screenHeight = window.screen.height;
+        document.getElementById('resolution').innerText = `Разрешение экрана: ${screenWidth}x${screenHeight}`;
+
+        // Текущая дата
+        const currentDate = new Date().toLocaleString();
+        document.getElementById('date').innerText = `Текущая дата и время: ${currentDate}`;
+
+        // Информация о сети
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection) {
+            document.getElementById('network').innerText = `Тип сети: ${connection.effectiveType}`;
+        } else {
+            document.getElementById('network').innerText = 'Информация о сети недоступна.';
+        }
+
+        // Заряд батареи
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                const batteryLevel = (battery.level * 100).toFixed(0) + '%';
+                const chargingStatus = battery.charging ? 'Зарядка' : 'Не заряжается';
+                document.getElementById('battery').innerText = `Уровень заряда: ${batteryLevel}, Статус: ${chargingStatus}`;
+            }).catch(() => {
+                document.getElementById('battery').innerText = 'Информация о батарее недоступна.';
+            });
+        } else {
+            document.getElementById('battery').innerText = 'Информация о батарее недоступна.';
+        }
+
+        // Геолокация
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const { latitude, longitude } = position.coords;
+                    document.getElementById('location').innerText = `Широта: ${latitude.toFixed(2)}, Долгота: ${longitude.toFixed(2)}`;
+                },
+                error => {
+                    document.getElementById('location').innerText = 'Геолокация отключена или недоступна.';
+                }
+            );
+        } else {
+            document.getElementById('location').innerText = 'Геолокация не поддерживается вашим устройством.';
+        }
+
+        // Цветовая схема
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.getElementById('theme').innerText = prefersDarkScheme ? 'Темная тема' : 'Светлая тема';
+
+        // Функции браузера
+        const cameraSupported = navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices;
+        document.getElementById('features').innerText = `Поддержка камеры: ${cameraSupported ? 'Да' : 'Нет'}`;
+
+        // Часовой пояс
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.getElementById('timezone').innerText = `Часовой пояс: ${timeZone}`;
+
+        // Язык браузера
+        const language = navigator.language || navigator.userLanguage;
+        document.getElementById('language').innerText = `Язык браузера: ${language}`;
+
+        // Ориентация экрана
+        const orientation = window.screen.orientation ? window.screen.orientation.type : 'Не доступно';
+        document.getElementById('orientation').innerText = `Ориентация экрана: ${orientation}`;
+
+        // Поддержка сенсорных событий
+        const touchSupported = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        document.getElementById('touch').innerText = `Поддержка сенсорных событий: ${touchSupported ? 'Да' : 'Нет'}`;
+
+        // Список плагинов браузера
+        const plugins = navigator.plugins;
+        let pluginsList = 'Список плагинов: ';
+        if (plugins.length > 0) {
+            const pluginNames = [];
+            for (let i = 0; i < plugins.length; i++) {
+                pluginNames.push(plugins[i].name);
+            }
+            pluginsList += pluginNames.join(', ');
+        } else {
+            pluginsList += 'Нет установленных плагинов.';
+        }
+        document.getElementById('plugins').innerText = pluginsList;
+    </script>
+</body>
+</html>
